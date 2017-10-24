@@ -12,27 +12,28 @@ class Redic::Pool
 
     @url = url
     @pool = ConnectionPool.new(opts) { Redic.new(url, timeout) }
+    @buffer = Hash.new { |h, k| h[k] = [] }
+  end
 
-    @id = "redic-pool-#{object_id}"
+  def buffer
+    @buffer[Thread.current.object_id]
+  end
+
+  def reset
+    @buffer.delete(Thread.current.object_id)
   end
 
   def queue(*args)
-    Thread.current[@id] || (Thread.current[@id] = [])
-    Thread.current[@id] << args
+    buffer << args
   end
 
   def commit
     @pool.with do |client|
-      Thread.current[@id].each do |args|
-        client.queue(*args)
-      end
-
-      result = client.commit
-
-      Thread.current[@id].clear
-
-      result
+      client.buffer.concat(buffer)
+      client.commit
     end
+  ensure
+    reset
   end
 
   %w[call call!].each do |method|
