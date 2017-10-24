@@ -23,4 +23,6 @@ Gem::Specification.new do |s|
   s.add_dependency("redic")
 
   s.add_development_dependency("cutest")
+  s.add_development_dependency("ohm")
+  s.add_development_dependency("rake")
 end
